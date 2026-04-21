@@ -30,6 +30,36 @@ class AuthRepository {
     }
   }
 
+  /// Self-registration for a free-tier student account.
+  ///
+  /// Mirrors the web app's `/api/register` endpoint:
+  ///   { name, email, phone?, privacyAccepted, marketingAccepted }
+  /// 201 on success, 400 on validation, 409 on email already in use.
+  ///
+  /// The server does NOT set a session cookie here — the user still
+  /// has to go through the OTP flow to log in. That's on purpose so
+  /// we verify the email belongs to the person who typed it.
+  Future<void> register({
+    required String name,
+    required String email,
+    String? phone,
+    required bool privacyAccepted,
+    bool marketingAccepted = false,
+  }) async {
+    final res = await _api.dio.post(
+      '/api/register',
+      data: {
+        'name': name.trim(),
+        'email': email.trim().toLowerCase(),
+        if (phone != null && phone.trim().isNotEmpty) 'phone': phone.trim(),
+        'privacyAccepted': privacyAccepted,
+        'marketingAccepted': marketingAccepted,
+      },
+    );
+    if (res.statusCode == 201 || res.statusCode == 200) return;
+    throw _errFromResponse(res, fallback: 'Не удалось зарегистрироваться');
+  }
+
   /// Verifies the OTP. On success the session cookie is already
   /// in our jar — caller just needs to query [currentUser] or use
   /// the returned user object directly.
