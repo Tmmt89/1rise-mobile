@@ -20,6 +20,8 @@ pubspec.lock
 .DS_Store
 
 # Android
+/android/.kotlin/
+/android/app/.kotlin/
 /android/app/debug
 /android/app/profile
 /android/app/release
