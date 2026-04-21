@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import 'package:onerise_mobile/features/auth/auth_controller.dart';
+import 'package:onerise_mobile/features/profile/profile_repository.dart';
 import 'package:onerise_mobile/features/schedule/session_card.dart';
 import 'package:onerise_mobile/features/schedule/session_models.dart';
 import 'package:onerise_mobile/features/schedule/session_repository.dart';
@@ -26,16 +27,17 @@ class ScheduleScreen extends ConsumerWidget {
         title: const Text('Расписание'),
         actions: [
           IconButton(
-            icon: const Icon(Icons.logout),
-            tooltip: 'Выйти',
-            onPressed: () =>
-                ref.read(authControllerProvider.notifier).logout(),
+            icon: const Icon(Icons.person_outline),
+            tooltip: 'Профиль',
+            onPressed: () => context.push('/profile'),
           ),
         ],
       ),
       body: RefreshIndicator(
-        onRefresh: () async =>
-            ref.invalidate(upcomingSessionsProvider),
+        onRefresh: () async {
+          ref.invalidate(upcomingSessionsProvider);
+          ref.invalidate(myBookingsBySessionIdProvider);
+        },
         child: async.when(
           loading: () => const Center(child: CircularProgressIndicator()),
           error: (e, _) => _ErrorState(
@@ -72,19 +74,52 @@ class ScheduleScreen extends ConsumerWidget {
   Future<void> _cancel(
     BuildContext context, WidgetRef ref, SessionSummary s,
   ) async {
-    // The cancel endpoint needs the booking id, not the session id.
-    // T1 day 2 simplification: GET `/api/me/active-booking` would
-    // give us the id, but we don't have that flow yet. For the first
-    // iteration we punt: ask the user to cancel from the web app.
-    // Day 2.5 follow-up is to add a "my bookings" fetch and expose
-    // the booking id on the SessionSummary server-side.
-    // Params accepted for forward-compat; cancel-by-booking-id needs
-    // a /api/me/active-booking hop we haven't wired yet (next slice).
-    debugPrint('cancel requested for session ${s.id}; ref=$ref');
-    _toast(
-      context,
-      'Отмена бронирования — скоро. Пока это можно сделать на 1rise.ru.',
+    // `hasActiveBooking` on the session tells us there IS a booking;
+    // to cancel we need the booking id, which lives on the separate
+    // /api/me/*-booking endpoints. Resolve via the combined provider
+    // (cached in memory — no round-trip on the happy path).
+    final bookingsMap =
+        await ref.read(myBookingsBySessionIdProvider.future);
+    final bookingId = bookingsMap[s.id];
+    if (!context.mounted) return;
+    if (bookingId == null) {
+      _toast(context, 'Не удалось определить бронь — попробуйте обновить.');
+      return;
+    }
+
+    // Confirm before destructive action — a mis-tap loses the slot.
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text('Отменить «${s.title}»?'),
+        content: const Text('Бронь будет удалена.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Нет'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style:
+                FilledButton.styleFrom(backgroundColor: Colors.red.shade700),
+            child: const Text('Отменить'),
+          ),
+        ],
+      ),
     );
+    if (confirmed != true) return;
+
+    final repo = await ref.read(sessionRepositoryProvider.future);
+    try {
+      await repo.cancel(bookingId);
+      if (!context.mounted) return;
+      _toast(context, 'Бронь отменена');
+      ref.invalidate(upcomingSessionsProvider);
+      ref.invalidate(myBookingsBySessionIdProvider);
+    } on Exception catch (e) {
+      if (!context.mounted) return;
+      _toast(context, _clean(e));
+    }
   }
 
   void _join(BuildContext context, SessionSummary s) {

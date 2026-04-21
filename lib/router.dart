@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import 'package:onerise_mobile/features/auth/auth_controller.dart';
 import 'package:onerise_mobile/features/auth/login_screen.dart';
+import 'package:onerise_mobile/features/profile/profile_screen.dart';
 import 'package:onerise_mobile/features/room/room_screen.dart';
 import 'package:onerise_mobile/features/schedule/schedule_screen.dart';
 
@@ -47,6 +48,10 @@ final routerProvider = Provider<GoRouter>((ref) {
           }
           return RoomScreen(sessionId: id);
         },
+      ),
+      GoRoute(
+        path: '/profile',
+        builder: (_, __) => const ProfileScreen(),
       ),
     ],
   );
