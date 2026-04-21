@@ -66,5 +66,28 @@
 		<string>UIInterfaceOrientationLandscapeLeft</string>
 		<string>UIInterfaceOrientationLandscapeRight</string>
 	</array>
+	<!-- LiveKit permissions. iOS REJECTS the app on first getUserMedia
+	     call if these strings aren't present — and the reject takes
+	     the whole room down, not just one track. Copy explains the
+	     WHY to the student in their own language; store reviewers
+	     also read these. -->
+	<key>NSCameraUsageDescription</key>
+	<string>Приложению нужен доступ к камере, чтобы вы могли участвовать в онлайн-уроке со своим видео.</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>Приложению нужен доступ к микрофону, чтобы вас было слышно на уроке.</string>
+	<!-- Background audio — keeps the LiveKit audio track alive when
+	     the user locks the phone or switches apps mid-lesson. Without
+	     `audio` in UIBackgroundModes, iOS mutes the microphone the
+	     moment the app backgrounds. -->
+	<key>UIBackgroundModes</key>
+	<array>
+		<string>audio</string>
+		<string>voip</string>
+	</array>
+	<!-- iOS 14+ local network usage prompt — needed if LiveKit ever
+	     falls back to LAN candidates (rare but possible on
+	     corporate Wi-Fi with outbound WebRTC restrictions). -->
+	<key>NSLocalNetworkUsageDescription</key>
+	<string>Для подключения к видеозанятию.</string>
 </dict>
 </plist>
