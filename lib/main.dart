@@ -1,10 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:intl/date_symbol_data_local.dart';
 
 import 'package:onerise_mobile/features/auth/auth_controller.dart';
 import 'package:onerise_mobile/router.dart';
 
-void main() {
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  // Load Russian date-format symbols so `DateFormat('d MMM', 'ru_RU')`
+  // inside session cards doesn't throw a locale-not-loaded error. A
+  // second (or third) locale can be added here when we have one.
+  await initializeDateFormatting('ru_RU', null);
   runApp(const ProviderScope(child: _BootstrapApp()));
 }
 

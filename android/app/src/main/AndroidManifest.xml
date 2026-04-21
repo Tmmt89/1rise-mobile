@@ -1,4 +1,31 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Core networking — required by dio for HTTPS to 1rise.ru and
+         LiveKit WebRTC to meet.1rise.ru. -->
+    <uses-permission android:name="android.permission.INTERNET"/>
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE"/>
+
+    <!-- Media permissions — LiveKit publishes the device mic + camera. -->
+    <uses-permission android:name="android.permission.CAMERA"/>
+    <uses-permission android:name="android.permission.RECORD_AUDIO"/>
+    <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS"/>
+
+    <!-- Bluetooth permissions for audio-routed-through-headset use.
+         `BLUETOOTH` / `BLUETOOTH_CONNECT` because Android 12+ split
+         the old BLUETOOTH permission into granular ones. -->
+    <uses-permission android:name="android.permission.BLUETOOTH"/>
+    <uses-permission android:name="android.permission.BLUETOOTH_CONNECT"/>
+
+    <!-- Keep the mic alive when the user backgrounds the app — a
+         student who switches to look up a word shouldn't drop from
+         the lesson. `foregroundServiceType=microphone` is Android 14
+         required. -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE"/>
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MICROPHONE"/>
+
+    <!-- WAKE_LOCK so the mic/camera don't get killed on idle lock
+         while the lesson is running. -->
+    <uses-permission android:name="android.permission.WAKE_LOCK"/>
+
     <application
         android:label="onerise_mobile"
         android:name="${applicationName}"

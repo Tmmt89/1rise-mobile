@@ -60,6 +60,33 @@ class AuthController extends StateNotifier<AuthState> {
     }
   }
 
+  /// Returns true if the account was created. Caller then kicks off
+  /// the OTP flow with the same email — we deliberately do NOT auto-
+  /// login, because the email must be verified before the user is
+  /// trusted to hold a session.
+  Future<bool> register({
+    required String name,
+    required String email,
+    String? phone,
+    required bool privacyAccepted,
+  }) async {
+    state = state.copyWith(loading: true, clearError: true);
+    try {
+      final repo = await _repoFuture;
+      await repo.register(
+        name: name,
+        email: email,
+        phone: phone,
+        privacyAccepted: privacyAccepted,
+      );
+      state = state.copyWith(loading: false);
+      return true;
+    } on Exception catch (e) {
+      state = state.copyWith(loading: false, error: _cleanErr(e));
+      return false;
+    }
+  }
+
   String _cleanErr(Exception e) {
     final s = e.toString();
     // `Exception: <msg>` → `<msg>` for a nicer UI surface.

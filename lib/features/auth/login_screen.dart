@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:onerise_mobile/features/auth/auth_controller.dart';
+import 'package:onerise_mobile/features/auth/register_screen.dart';
 
 /// Two-step OTP login.
 ///
@@ -54,12 +55,35 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   void _toast(String msg) {
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(msg)),
+      SnackBar(
+        content: Text(msg),
+        duration: const Duration(seconds: 6),
+      ),
     );
   }
 
   bool _looksLikeEmail(String s) =>
-      RegExp(r'^[^\s@]+@[^\s@]+\.[^\s@]+\$').hasMatch(s);
+      // Raw-string regex — `$` is the anchor, NOT literal. The earlier
+      // version had `\$` which demanded a literal `$` at the end of
+      // the email, rejecting every real address. This regex matches
+      // the permissive RFC-5321-ish "one @, at least one dot in the
+      // domain" shape everyone actually uses.
+      RegExp(r'^[^\s@]+@[^\s@]+\.[^\s@]+$').hasMatch(s);
+
+  /// Open the registration sheet. On success the register screen
+  /// pops the email back to us — we pre-fill the email field and
+  /// leave the user on "Отправить код" so they finish the OTP.
+  Future<void> _openRegister() async {
+    final email = await Navigator.of(context).push<String>(
+      MaterialPageRoute(builder: (_) => const RegisterScreen()),
+    );
+    if (email != null && mounted) {
+      setState(() {
+        _emailCtrl.text = email;
+        _step = _Step.email;
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -118,6 +142,20 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                           child: CircularProgressIndicator(strokeWidth: 2),
                         )
                       : const Text('Отправить код'),
+                ),
+                const SizedBox(height: 24),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const Text(
+                      'Ещё нет аккаунта?',
+                      style: TextStyle(color: Colors.black54),
+                    ),
+                    TextButton(
+                      onPressed: auth.loading ? null : _openRegister,
+                      child: const Text('Зарегистрироваться'),
+                    ),
+                  ],
                 ),
               ] else ...[
                 TextField(
