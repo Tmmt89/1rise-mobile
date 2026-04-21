@@ -54,16 +54,36 @@ class ApiClient {
 
     dio.interceptors.add(CookieManager(cookieJar));
 
-    if (AppConfig.httpLogging) {
+    // Log every request/response body in debug builds — the "почему
+    // отправка кода выдала ошибку" question is answered much faster
+    // when the exact Dio error is visible in the console. Release
+    // builds keep this off unless HTTP_LOGGING=true is passed via
+    // --dart-define, because we don't want bodies in production logs.
+    if (AppConfig.httpLogging || _isDebugBuild) {
       dio.interceptors.add(LogInterceptor(
+        request: false,
+        requestHeader: false,
         requestBody: true,
+        responseHeader: false,
         responseBody: true,
+        error: true,
         // ignore: avoid_print
-        logPrint: (o) => print(o),
+        logPrint: (o) => print('[http] $o'),
       ));
     }
 
     return ApiClient._(dio);
+  }
+
+  /// Dart's assert runs in debug, not in release. Using it to flip
+  /// a flag at build time is the standard trick.
+  static bool get _isDebugBuild {
+    bool d = false;
+    assert(() {
+      d = true;
+      return true;
+    }());
+    return d;
   }
 
   /// Wipe the cookie jar. Called by the auth repo on logout so a

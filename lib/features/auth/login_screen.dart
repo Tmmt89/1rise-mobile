@@ -55,7 +55,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   void _toast(String msg) {
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(msg)),
+      SnackBar(
+        content: Text(msg),
+        duration: const Duration(seconds: 6),
+      ),
     );
   }
 

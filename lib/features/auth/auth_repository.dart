@@ -21,12 +21,16 @@ class AuthRepository {
   final ApiClient _api;
 
   Future<void> requestOtp(String email) async {
-    final res = await _api.dio.post(
-      '/api/auth/request-otp',
-      data: {'email': email.trim().toLowerCase()},
-    );
-    if (res.statusCode != 200) {
-      throw _errFromResponse(res, fallback: 'Не удалось отправить код');
+    try {
+      final res = await _api.dio.post(
+        '/api/auth/request-otp',
+        data: {'email': email.trim().toLowerCase()},
+      );
+      if (res.statusCode != 200) {
+        throw _errFromResponse(res, fallback: 'Не удалось отправить код');
+      }
+    } on DioException catch (e) {
+      throw _networkErr(e);
     }
   }
 
@@ -46,18 +50,22 @@ class AuthRepository {
     required bool privacyAccepted,
     bool marketingAccepted = false,
   }) async {
-    final res = await _api.dio.post(
-      '/api/register',
-      data: {
-        'name': name.trim(),
-        'email': email.trim().toLowerCase(),
-        if (phone != null && phone.trim().isNotEmpty) 'phone': phone.trim(),
-        'privacyAccepted': privacyAccepted,
-        'marketingAccepted': marketingAccepted,
-      },
-    );
-    if (res.statusCode == 201 || res.statusCode == 200) return;
-    throw _errFromResponse(res, fallback: 'Не удалось зарегистрироваться');
+    try {
+      final res = await _api.dio.post(
+        '/api/register',
+        data: {
+          'name': name.trim(),
+          'email': email.trim().toLowerCase(),
+          if (phone != null && phone.trim().isNotEmpty) 'phone': phone.trim(),
+          'privacyAccepted': privacyAccepted,
+          'marketingAccepted': marketingAccepted,
+        },
+      );
+      if (res.statusCode == 201 || res.statusCode == 200) return;
+      throw _errFromResponse(res, fallback: 'Не удалось зарегистрироваться');
+    } on DioException catch (e) {
+      throw _networkErr(e);
+    }
   }
 
   /// Verifies the OTP. On success the session cookie is already
@@ -67,26 +75,34 @@ class AuthRepository {
     required String email,
     required String code,
   }) async {
-    final res = await _api.dio.post(
-      '/api/auth/verify-otp',
-      data: {'email': email.trim().toLowerCase(), 'code': code.trim()},
-    );
-    if (res.statusCode != 200) {
-      throw _errFromResponse(res, fallback: 'Неверный код');
+    try {
+      final res = await _api.dio.post(
+        '/api/auth/verify-otp',
+        data: {'email': email.trim().toLowerCase(), 'code': code.trim()},
+      );
+      if (res.statusCode != 200) {
+        throw _errFromResponse(res, fallback: 'Неверный код');
+      }
+      return CurrentUser.fromJson(res.data as Map<String, dynamic>);
+    } on DioException catch (e) {
+      throw _networkErr(e);
     }
-    return CurrentUser.fromJson(res.data as Map<String, dynamic>);
   }
 
   /// Returns the current user if a valid session cookie is present,
   /// null if 401. Any other error re-throws so the UI doesn't silently
   /// treat a 500 as "logged out".
   Future<CurrentUser?> currentUser() async {
-    final res = await _api.dio.get('/api/me');
-    if (res.statusCode == 200) {
-      return CurrentUser.fromJson(res.data as Map<String, dynamic>);
+    try {
+      final res = await _api.dio.get('/api/me');
+      if (res.statusCode == 200) {
+        return CurrentUser.fromJson(res.data as Map<String, dynamic>);
+      }
+      if (res.statusCode == 401) return null;
+      throw _errFromResponse(res, fallback: 'Не удалось получить профиль');
+    } on DioException catch (e) {
+      throw _networkErr(e);
     }
-    if (res.statusCode == 401) return null;
-    throw _errFromResponse(res, fallback: 'Не удалось получить профиль');
   }
 
   Future<void> logout() async {
@@ -105,6 +121,38 @@ class AuthRepository {
       return Exception(data['error'] as String);
     }
     return Exception('$fallback (HTTP ${r.statusCode})');
+  }
+
+  /// Network-level failures (DNS, timeout, TLS, server 5xx with the
+  /// default Dio validateStatus) don't carry a parsed body — surface
+  /// a clean Russian message and the root cause for the console.
+  Exception _networkErr(DioException e) {
+    // If the server did reply with a body (rare with validateStatus
+    // accepting <500 as ok, but possible on 5xx), prefer the parsed
+    // error — it's more specific than "connection failed".
+    final resp = e.response;
+    if (resp != null && resp.data is Map<String, dynamic>) {
+      final msg = (resp.data as Map<String, dynamic>)['error'];
+      if (msg is String) return Exception(msg);
+    }
+    switch (e.type) {
+      case DioExceptionType.connectionTimeout:
+      case DioExceptionType.receiveTimeout:
+      case DioExceptionType.sendTimeout:
+        return Exception('Сервер не отвечает. Проверьте интернет и попробуйте снова.');
+      case DioExceptionType.connectionError:
+        return Exception('Нет связи с сервером. Проверьте интернет.');
+      case DioExceptionType.badCertificate:
+        return Exception('Ошибка сертификата сервера.');
+      case DioExceptionType.cancel:
+        return Exception('Запрос отменён.');
+      case DioExceptionType.badResponse:
+      case DioExceptionType.unknown:
+        return Exception(
+          'Ошибка сети: ${e.message ?? e.type.name} '
+          '(HTTP ${e.response?.statusCode ?? "—"})',
+        );
+    }
   }
 }
 
