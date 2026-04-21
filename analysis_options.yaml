@@ -1,0 +1,23 @@
+include: package:flutter_lints/flutter.yaml
+
+analyzer:
+  exclude:
+    - "**/*.g.dart"
+    - "**/*.freezed.dart"
+  errors:
+    # Production code should never ship with print() — they silently
+    # eat logs on release builds anyway. Fail the analyzer.
+    avoid_print: error
+    # These are warnings by default; we want them as errors because
+    # they're easy to slip through and always worth fixing.
+    unused_import: warning
+    unused_local_variable: warning
+
+linter:
+  rules:
+    - avoid_print
+    - prefer_single_quotes
+    - always_use_package_imports
+    - prefer_const_constructors
+    - prefer_const_literals_to_create_immutables
+    - sort_child_properties_last

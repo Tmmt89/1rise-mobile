@@ -1,0 +1,49 @@
+name: onerise_mobile
+description: "1rise Speaking Club — Flutter mobile app"
+publish_to: "none"
+version: 0.1.0+1
+
+environment:
+  sdk: ">=3.3.0 <4.0.0"
+  flutter: ">=3.22.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+  cupertino_icons: ^1.0.8
+
+  # Networking — dio with a cookie jar so we share the same session
+  # mechanism as the web app (cookie `rise.sid` on 1rise.ru).
+  dio: ^5.7.0
+  dio_cookie_manager: ^3.2.0
+  cookie_jar: ^4.0.8
+
+  # State management. Picking riverpod over bloc: simpler for the
+  # shape of this app (mostly read-heavy screens + a handful of
+  # mutations). No code-gen overhead until we actually need it.
+  flutter_riverpod: ^2.5.1
+
+  # Routing with deep-link support — the app needs /room/:id links
+  # to work from notifications.
+  go_router: ^14.4.1
+
+  # Video plane. Official LiveKit Flutter client. Native WebRTC
+  # under the hood.
+  livekit_client: ^2.3.2
+
+  # Small utilities.
+  permission_handler: ^11.3.1    # mic + camera at runtime
+  shared_preferences: ^2.3.2     # persist session cookie + minimal state
+  path_provider: ^2.1.4          # cookie-jar persistence dir
+  intl: ^0.19.0                  # date formatting (ru-RU)
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^5.0.0
+
+flutter:
+  uses-material-design: true
+  # Assets get added here once we have icons / splash.
+  # assets:
+  #   - assets/
