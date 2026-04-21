@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import 'package:onerise_mobile/features/auth/auth_controller.dart';
 import 'package:onerise_mobile/features/schedule/session_card.dart';
@@ -87,9 +88,11 @@ class ScheduleScreen extends ConsumerWidget {
   }
 
   void _join(BuildContext context, SessionSummary s) {
-    // Forward-compat: next slice SPA-navs to /room/:id.
-    debugPrint('join requested for session ${s.id}');
-    _toast(context, 'Подключение к уроку — T1 день 3. Пока через 1rise.ru.');
+    // Native LiveKit room for VIDEO_ENGINE=livekit sessions. For BBB
+    // sessions on the legacy domain we'd open the zoomLink in an
+    // external browser — but the mobile app is clone-targeted, so
+    // everything is LiveKit here.
+    context.push('/room/${s.id}');
   }
 
   void _toast(BuildContext context, String msg) {
