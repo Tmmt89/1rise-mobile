@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import 'package:onerise_mobile/features/auth/auth_controller.dart';
 import 'package:onerise_mobile/features/auth/login_screen.dart';
+import 'package:onerise_mobile/features/room/room_screen.dart';
 import 'package:onerise_mobile/features/schedule/schedule_screen.dart';
 
 /// Global router. Auth guard redirects to /login whenever
@@ -35,8 +36,18 @@ final routerProvider = Provider<GoRouter>((ref) {
         path: '/',
         builder: (_, __) => const ScheduleScreen(),
       ),
-      // /room/:id and profile land in T1 day 3-4 — placeholder routes
-      // suppressed until the screens exist.
+      GoRoute(
+        path: '/room/:sessionId',
+        builder: (_, state) {
+          final id = int.tryParse(state.pathParameters['sessionId'] ?? '');
+          if (id == null) {
+            return const Scaffold(
+              body: Center(child: Text('Некорректный id урока')),
+            );
+          }
+          return RoomScreen(sessionId: id);
+        },
+      ),
     ],
   );
 });
